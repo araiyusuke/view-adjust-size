@@ -10,9 +10,9 @@ extension CGSize {
 @available(iOS 13.0, *)
 public struct ViewAdjustSize {
     public static func convert(_ size: CGFloat, _ original: CGSize) -> CGFloat {
-        let baseDiagonal: CGFloat = original.diagonal
+        let originalDiagonal: CGFloat = original.diagonal
         let deviceDiagonal: CGFloat =  UIScreen.main.bounds.size.diagonal
-        return deviceDiagonal / baseDiagonal * size
+        return deviceDiagonal / originalDiagonal * size
     }
 }
 
@@ -44,14 +44,14 @@ extension ViewAdjustSize {
         guard let size = size else{
             return nil
         }
-        let baseDiagonal: CGFloat = original
+        let originalDiagonal: CGFloat = original
         let deviceWidth: CGFloat = UIScreen.main.bounds.width
         let deviceHeight: CGFloat = UIScreen.main.bounds.height
         let deviceDiagonal: CGFloat = CGFloat(sqrt(Double(deviceWidth * deviceWidth + deviceHeight * deviceHeight) ))
-        return deviceDiagonal / baseDiagonal * size
+        return deviceDiagonal / originalDiagonal * size
     }
     struct PaddingModifier: ViewModifier {
-        @Environment(\.adjustBaseSize) private var base
+        @Environment(\.adjustOriginalSize) private var original
         let edge: Edge.Set
         let length: CGFloat?
         
@@ -59,53 +59,53 @@ extension ViewAdjustSize {
             return content
                 .padding(
                     edge,
-                    adjust(length, base.size)
+                    adjust(length, original.size)
                 )
-                .background(base.debug == true ? Color.red : Color.clear)
+                .background(original.debug == true ? Color.red : Color.clear)
         }
     }
     struct OffsetModifier: ViewModifier {
-        @Environment(\.adjustBaseSize) private var base
+        @Environment(\.adjustOriginalSize) private var original
         let x: CGFloat
         let y: CGFloat
         
         func body(content: Content) -> some View {
             return content
                 .offset(
-                    x: adjust(x, base.size) ?? 0, y: adjust(y, base.size) ?? 0
+                    x: adjust(x, original.size) ?? 0, y: adjust(y, original.size) ?? 0
                 )
         }
     }
     struct adjustFontModifier: ViewModifier {
-        @Environment(\.adjustBaseSize) private var base
+        @Environment(\.adjustOriginalSize) private var original
         let size: CGFloat
         let weight: Font.Weight
         let design: Font.Design
         func body(content: Content) -> some View {
              content
-                .font(.system(size: adjust(size, base.size) ?? 10, weight: weight, design: design))
+                .font(.system(size: adjust(size, original.size) ?? 10, weight: weight, design: design))
         }
     }
     struct FrameModifier: ViewModifier {
-        @Environment(\.adjustBaseSize) private var base
+        @Environment(\.adjustOriginalSize) private var original
         let width: CGFloat?
         let height: CGFloat?
         let alignment: Alignment = .center
         func body(content: Content) -> some View {
-            if base.debug {
+            if original.debug {
                 content
                     .frame(width: width, height:height)
                     .background(Color.red.opacity(0.4))
                     .frame(
-                        width: adjust(width, base.size),
-                        height: adjust(height, base.size)
+                        width: adjust(width, original.size),
+                        height: adjust(height, original.size)
                     )
-                    .background(base.debug == true ? Color.blue.opacity(0.7) : Color.clear)
+                    .background(original.debug == true ? Color.blue.opacity(0.7) : Color.clear)
             } else {
                 content
                     .frame(
-                        width: adjust(width, base.size),
-                        height: adjust(height, base.size)
+                        width: adjust(width, original.size),
+                        height: adjust(height, original.size)
                     )
             }
         }
@@ -113,7 +113,7 @@ extension ViewAdjustSize {
 }
 @available(iOS 13.0, *)
 extension EnvironmentValues {
-    public var adjustBaseSize: ViewAdjustSize.Options {
+    public var adjustOriginalSize: ViewAdjustSize.Options {
         get {
             self[ViewAdjustSize.ViewAdjustSizeEnvironmentKey.self] ?? ViewAdjustSize.Options(size: UIScreen.main.bounds.size)
         }
