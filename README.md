@@ -1,3 +1,3 @@
 # ViewAjustSize
 
-A description of this package.
+## 端末のサイズ間を調整するライブラリ
