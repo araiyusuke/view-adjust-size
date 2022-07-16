@@ -1,7 +1,20 @@
 import SwiftUI
 
+
+extension CGSize {
+    var diagonal: CGFloat {
+        return CGFloat(sqrt(Double(self.width * self.width + self.height * self.height)))
+    }
+}
+
 @available(iOS 13.0, *)
-public struct ViewAjustSize {}
+public struct ViewAjustSize {
+    public static func convert(_ size: CGFloat, _ original: CGSize) -> CGFloat {
+        let baseDiagonal: CGFloat = original.diagonal
+        let deviceDiagonal: CGFloat =  UIScreen.main.bounds.size.diagonal
+        return deviceDiagonal / baseDiagonal * size
+    }
+}
 
 @available(iOS 13.0, *)
 extension ViewAjustSize {
@@ -11,18 +24,12 @@ extension ViewAjustSize {
         private (set) public var size: CGFloat
         private (set) public var debug: Bool
         
-        public init(width: CGFloat?, height: CGFloat?, debug: Bool = false) {
-            guard let width = width,
-                  let height = height else {
+        public init(size: CGSize, debug: Bool = false) {
+            if size == .zero {
                 fatalError("環境変数が設定されてません")
             }
-            self.size = Self.diagonal(width, height)
+            self.size = size.diagonal
             self.debug = debug
-        }
-        
-        /// 対角線の長さを返す
-        static func diagonal(_ width: CGFloat, _ height: CGFloat) -> CGFloat {
-            return CGFloat(sqrt(Double(width * width + height * height) ))
         }
     }
 }
@@ -36,11 +43,11 @@ extension ViewAjustSize {
         public static var defaultValue: ViewAjustSize.Options?
     }
         
-    private static func ajust(_ size: CGFloat?, _ base: CGFloat) -> CGFloat? {
+    private static func ajust(_ size: CGFloat?, _ original: CGFloat) -> CGFloat? {
         guard let size = size else{
             return nil
         }
-        let baseDiagonal: CGFloat = base
+        let baseDiagonal: CGFloat = original
         let deviceWidth: CGFloat = UIScreen.main.bounds.width
         let deviceHeight: CGFloat = UIScreen.main.bounds.height
         let deviceDiagonal: CGFloat = CGFloat(sqrt(Double(deviceWidth * deviceWidth + deviceHeight * deviceHeight) ))
@@ -75,6 +82,18 @@ extension ViewAjustSize {
         }
     }
     
+  
+    
+    struct VStackModifier: ViewModifier {
+        @Environment(\.ajustBaseSize) private var base
+        func body(content: Content) -> some View {
+            VStack {
+                content
+            }
+        }
+    }
+    
+    
     struct FrameModifier: ViewModifier {
         @Environment(\.ajustBaseSize) private var base
         let width: CGFloat?
@@ -103,16 +122,9 @@ extension ViewAjustSize {
 
 @available(iOS 13.0, *)
 extension EnvironmentValues {
-    private static func diagonal(_ size: (width: CGFloat, height: CGFloat)?) -> CGFloat {
-        if let size = size {
-            return CGFloat(sqrt(Double(size.width * size.width + size.height * size.height) ))
-        } else {
-            fatalError("Environment variables are not set")
-        }
-    }
     public var ajustBaseSize: ViewAjustSize.Options {
         get {
-            self[ViewAjustSize.ViewAjustSizeEnvironmentKey.self] ?? ViewAjustSize.Options(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
+            self[ViewAjustSize.ViewAjustSizeEnvironmentKey.self] ?? ViewAjustSize.Options(size: UIScreen.main.bounds.size)
         }
         set {
             self[ViewAjustSize.ViewAjustSizeEnvironmentKey.self] =  newValue
