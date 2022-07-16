@@ -13,4 +13,8 @@ extension View {
     public func toRed() -> some View {
         self.background(Color.red)
     }
+    
+    public func toBlue() -> some View {
+        self.background(Color.blue)
+    }
 }
