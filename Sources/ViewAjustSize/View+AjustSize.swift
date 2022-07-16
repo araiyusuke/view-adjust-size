@@ -10,11 +10,21 @@ import SwiftUI
 
 @available(iOS 13.0, *)
 extension View {
-    public func toRed() -> some View {
-        self.background(Color.red)
+    /// AjustSizeModifierに渡す
+    public func ajustSize(
+        width: CGFloat? = nil,
+        height: CGFloat? = nil,
+        alignment: Alignment = .center
+    ) -> some View {
+        return self.modifier(ViewAjustSize.FrameModifier(width: width, height: height))
     }
     
-    public func toBlue() -> some View {
-        self.background(Color.blue)
+    /// AjustSizeModifierに渡す
+    public func ajustPadding(_ edge: Edge.Set = .all, _ length: CGFloat) -> some View {
+        return self.modifier(ViewAjustSize.PaddingModifier(edge: edge, length: length))
+    }
+    
+    public func ajustOffset(x: CGFloat = 0, y: CGFloat = 0) -> some View {
+        return self.modifier(ViewAjustSize.OffsetModifier(x: x, y: y))
     }
 }
