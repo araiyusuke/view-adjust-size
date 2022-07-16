@@ -1,22 +1,41 @@
 import SwiftUI
 
 @available(iOS 13.0, *)
-public struct ViewAjustSize {
+public struct ViewAjustSize {}
+
+@available(iOS 13.0, *)
+extension ViewAjustSize {
     
-    public struct ViewAjustSizeEnvironmentKey: EnvironmentKey {
-        public typealias Value = (CGFloat, CGFloat)?
-        public static var defaultValue: (CGFloat, CGFloat)?
-    }
-    
-    /// 対角線の長さ
-    private static func diagonal(_ size: (width: CGFloat, height: CGFloat)?) -> CGFloat {
-        if let size = size {
-            return CGFloat(sqrt(Double(size.width * size.width + size.height * size.height) ))
-        } else {
-            fatalError("環境変数が設定されてません")
+    public struct Options {
+        
+        private (set) public var size: CGFloat
+        private (set) public var debug: Bool
+        
+        public init(width: CGFloat?, height: CGFloat?, debug: Bool = false) {
+            guard let width = width,
+                  let height = height else {
+                fatalError("環境変数が設定されてません")
+            }
+            self.size = Self.diagonal(width, height)
+            self.debug = debug
+        }
+        
+        /// 対角線の長さを返す
+        static func diagonal(_ width: CGFloat, _ height: CGFloat) -> CGFloat {
+            return CGFloat(sqrt(Double(width * width + height * height) ))
         }
     }
+}
     
+@available(iOS 13.0, *)
+extension ViewAjustSize {
+
+    public struct ViewAjustSizeEnvironmentKey: EnvironmentKey {
+        public typealias Value = ViewAjustSize.Options?
+        
+        public static var defaultValue: ViewAjustSize.Options?
+    }
+        
     private static func ajust(_ size: CGFloat?, _ base: CGFloat) -> CGFloat? {
         guard let size = size else{
             return nil
@@ -37,8 +56,9 @@ public struct ViewAjustSize {
             return content
                 .padding(
                     edge,
-                    ajust(length, diagonal(base))
+                    ajust(length, base.size)
                 )
+                .background(base.debug == true ? Color.red : Color.clear)
         }
     }
     
@@ -46,45 +66,53 @@ public struct ViewAjustSize {
         @Environment(\.ajustBaseSize) private var base
         let x: CGFloat
         let y: CGFloat
-
+        
         func body(content: Content) -> some View {
             return content
                 .offset(
-                    x: ajust(x, diagonal(base)) ?? 0, y: ajust(y, diagonal(base)) ?? 0
+                    x: ajust(x, base.size) ?? 0, y: ajust(y, base.size) ?? 0
                 )
         }
     }
     
-    @available(iOS 13.0, *)
     struct FrameModifier: ViewModifier {
         @Environment(\.ajustBaseSize) private var base
         let width: CGFloat?
         let height: CGFloat?
         let alignment: Alignment = .center
         func body(content: Content) -> some View {
-            content
-                .frame(
-                    width: ajust(width, diagonal(base)),
-                    height: ajust(height, diagonal(base))
-                )
+            if base.debug {
+                content
+                    .frame(width: width, height:height)
+                    .background(Color.red.opacity(0.4))
+                    .frame(
+                        width: ajust(width, base.size),
+                        height: ajust(height, base.size)
+                    )
+                    .background(base.debug == true ? Color.blue.opacity(0.7) : Color.clear)
+            } else {
+                content
+                    .frame(
+                        width: ajust(width, base.size),
+                        height: ajust(height, base.size)
+                    )
+            }
         }
     }
 }
 
 @available(iOS 13.0, *)
 extension EnvironmentValues {
-    
     private static func diagonal(_ size: (width: CGFloat, height: CGFloat)?) -> CGFloat {
         if let size = size {
             return CGFloat(sqrt(Double(size.width * size.width + size.height * size.height) ))
         } else {
-            fatalError("環境変数が設定されてません")
+            fatalError("Environment variables are not set")
         }
     }
-    
-    public var ajustBaseSize: (width: CGFloat, height: CGFloat)? {
+    public var ajustBaseSize: ViewAjustSize.Options {
         get {
-             self[ViewAjustSize.ViewAjustSizeEnvironmentKey.self]
+            self[ViewAjustSize.ViewAjustSizeEnvironmentKey.self] ?? ViewAjustSize.Options(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
         }
         set {
             self[ViewAjustSize.ViewAjustSizeEnvironmentKey.self] =  newValue
